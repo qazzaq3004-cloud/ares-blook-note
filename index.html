@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="black">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Приложение Заметок</title>
+  <style>
+    /* --- СИСТЕМА ТЕМ --- */
+    :root {
+      --bg-color: #000000; --text-color: #ffffff;
+      --card-bg: #1c1c1e; --menu-bg: #111111;
+      --accent-color: #0A84FF; --border-color: #333333;
+      --app-font: system-ui, -apple-system, sans-serif;
+    }
+    [data-theme="white"] {
+      --bg-color: #f2f2f7; --text-color: #000000;
+      --card-bg: #ffffff; --menu-bg: #e5e5ea;
+      --accent-color: #0A84FF; --border-color: #d1d1d6;
+    }
+    [data-theme="yellow"] {
+      --bg-color: #fff9c4; --text-color: #3e2723;
+      --card-bg: #fff59d; --menu-bg: #fff176;
+      --accent-color: #f57f17; --border-color: #ffee58;
+    }
+    [data-theme="red"] {
+      --bg-color: #ffebee; --text-color: #b71c1c;
+      --card-bg: #ffcdd2; --menu-bg: #ef9a9a;
+      --accent-color: #d32f2f; --border-color: #e57373;
+    }
+    [data-theme="blue"] {
+      --bg-color: #e3f2fd; --text-color: #0d47a1;
+      --card-bg: #bbdefb; --menu-bg: #90caf9;
+      --accent-color: #1976d2; --border-color: #64b5f6;
+    }
+    [data-theme="green"] {
+      --bg-color: #e8f5e9; --text-color: #1b5e20;
+      --card-bg: #c8e6c9; --menu-bg: #a5d6a7;
+      --accent-color: #388e3c; --border-color: #81c784;
+    }
+    [data-theme="purple"] {
+      --bg-color: #f3e5f5; --text-color: #4a148c;
+      --card-bg: #e1bee7; --menu-bg: #ce93d8;
+      --accent-color: #7b1fa2; --border-color: #ba68c8;
+    }
+    [data-theme="neon"] {
+      --bg-color: #07080e; --text-color: #ffffff;
+      --card-bg: #111322; --menu-bg: #0c0d18;
+      --accent-color: #00f0ff; --border-color: #ff007f;
+    }
+    [data-theme="hacker"] {
+      --bg-color: #000000; --text-color: #00FF41;
+      --card-bg: #0a0a0a; --menu-bg: #050505;
+      --accent-color: #008F11; --border-color: #00FF41;
+      --app-font: 'Courier New', Courier, monospace;
+    }
+
+    body {
+      background-color: var(--bg-color); color: var(--text-color);
+      font-family: var(--app-font); margin: 0; padding: 0;
+      transition: all 0.3s ease;
+      -webkit-user-select: none; user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    .app-container { max-width: 100%; padding: 20px; }
+
+    /* --- ЭКРАНЫ --- */
+    .screen { display: none; animation: fadeIn 0.3s; }
+    .screen.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* --- ЭЛЕМЕНТЫ ФОРМ --- */
+    input, textarea, button { width: 100%; box-sizing: border-box; border-radius: 16px; border: none; padding: 16px; font-size: 16px; outline: none; font-family: var(--app-font); margin-bottom: 12px; }
+    input, textarea { background-color: var(--card-bg); color: var(--text-color); border: 1px solid var(--border-color); -webkit-user-select: text; user-select: text; }
+    input::placeholder, textarea::placeholder { color: var(--text-color); opacity: 0.5; }
+
+    /* --- ГЛАВНАЯ И СПИСОК --- */
+    .header-top { display: flex; align-items: center; margin-bottom: 15px; }
+    .header-top h1 { margin: 0 0 0 10px; font-size: 30px; }
+    .icon-btn { width: auto; padding: 10px; background: transparent; color: var(--text-color); font-size: 20px; font-weight: bold; cursor: pointer; margin: 0; border: none; }
+    .note-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 20px; margin-bottom: 15px; cursor: pointer; position: relative; }
+    .note-card h3 { margin: 0 0 8px 0; font-size: 20px; }
+    .note-card p { margin: 0; opacity: 0.8; word-wrap: break-word; }
+
+    /* --- ПЛАВАЮЩАЯ КНОПКА (FAB) --- */
+    .fab {
+      position: fixed; bottom: 30px; right: 30px;
+      width: 65px; height: 65px; border-radius: 50%;
+      background-color: var(--accent-color); color: #fff;
+      font-size: 28px; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.4); cursor: pointer;
+      padding: 0; border: none; margin: 0; z-index: 100;
+    }
+
+    /* --- ЭКРАН РЕДАКТОРА --- */
+    .editor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .editor-main { display: flex; flex-direction: column; height: calc(100vh - 100px); }
+    #noteTitle { font-size: 24px; font-weight: bold; }
+    #noteText { flex-grow: 1; resize: none; margin-bottom: 0; }
+
+    /* --- МЕНЮ --- */
+    .side-menu { position: fixed; top: 0; left: -300px; width: 260px; height: 100%; background-color: var(--menu-bg); z-index: 1000; transition: left 0.3s; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+    .side-menu.open { left: 0; }
+    .menu-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+    .menu-list { list-style: none; padding: 0; margin: 0; }
+    .menu-list li { padding: 15px 10px; border-bottom: 1px solid var(--border-color); cursor: pointer; }
+    .menu-list li:hover { background-color: var(--card-bg); }
+    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 999; display: none; }
+    .overlay.show { display: block; }
+
+    /* --- МОДАЛЬНЫЕ ОКНА --- */
+    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; display: none; align-items: center; justify-content: center; }
+    .modal.show { display: flex; }
+    .modal-content { background: var(--menu-bg); padding: 20px; border-radius: 20px; width: 90%; max-width: 400px; border: 1px solid var(--border-color); }
+    .theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
+    .theme-btn { padding: 12px; border-radius: 12px; cursor: pointer; font-weight: bold; text-transform: uppercase; border: 1px solid var(--border-color); margin: 0; }
+    .hacker-btn { grid-column: span 2; background: #000; color: #00FF41; border-color: #00FF41; font-family: monospace; }
+    .close-modal-btn { background: var(--accent-color); color: #fff; cursor: pointer; }
+
+    .folder-select {
+      background-color: var(--card-bg); color: var(--text-color);
+      border: 1px solid var(--border-color); border-radius: 12px;
+      padding: 8px 12px; font-size: 16px; font-family: var(--app-font);
+      outline: none; max-width: 150px;
+    }
+    .action-li { margin-top: 10px; border-top: 2px dashed var(--border-color) !important; }
+    .folder-item { padding-left: 30px !important; font-size: 16px !important; color: #8e8e93; }
+
+    .trash-actions { display: flex; gap: 10px; margin-top: 15px; }
+    .trash-actions button { width: auto; cursor: pointer; }
+    .restore-btn { background-color: #34C759; padding: 10px; border-radius: 12px; font-size: 14px; margin: 0; color: white; }
+    .hard-delete-btn { background-color: #FF3B30; padding: 10px; border-radius: 12px; font-size: 14px; margin: 0; color: white; }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <div id="sideMenu" class="side-menu">
+    <div class="menu-header">
+      <h2>Меню</h2>
+      <button id="closeMenuBtn" class="icon-btn">✕</button>
+    </div>
+    <ul class="menu-list">
+      <li id="allNotesBtn" class="active">📄 Все заметки</li>
+      
+      <div id="foldersListMenu"></div>
+      
+      <li id="newFolderBtn" class="action-li">📁 Новая папка</li>
+      <li id="trashBtn" class="action-li">🗑️ Корзина</li>
+      <li id="themeToggleBtn" class="action-li">🎨 Темы</li>
+      <li id="securityBtn" class="action-li">🔒 Безопасность</li>
+      <li id="privacyBtn" class="action-li">🛡️ Конфиденциальность</li>
+    </ul>
+  </div>
+  <div id="overlay" class="overlay"></div>
+
+  <div id="pinLockScreen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: none; align-items: center; justify-content: center; flex-direction: column;">
+    <h2 style="margin-bottom: 20px;">🔒 Вход заблокирован</h2>
+    <p>Введите 4-значный ПИН-код:</p>
+    <input type="password" id="lockPinInput" maxlength="4" style="width: 160px; text-align: center; font-size: 24px; letter-spacing: 8px;" placeholder="****">
+    <button id="unlockBtn" style="width: 160px; background: var(--accent-color); color: #fff; cursor: pointer;">Войти</button>
+    <p id="lockError" style="color: #FF3B30; margin-top: 10px; display: none;">Неверный ПИН-код!</p>
+  </div>
+
+  <div id="securityModal" class="modal">
+    <div class="modal-content">
+      <h3>🔒 Безопасность</h3>
+      <div id="pinSetupBlock" style="display: none;">
+        <p>ПИН-код не установлен. Задайте 4 цифры:</p>
+        <input type="password" id="newPin" maxlength="4" placeholder="Введите пинкод" style="text-align: center;">
+        <input type="password" id="confirmPin" maxlength="4" placeholder="Повторите пин код" style="text-align: center;">
+        <button id="savePinBtn" style="background: var(--accent-color); color: #fff; cursor: pointer;">Установить ПИН</button>
+      </div>
+      <div id="pinRemoveBlock" style="display: none;">
+        <p style="color: #34C759;">✓ ПИН-код активен и защищает приложение.</p>
+        <p>Для отмены пинкода нужно ввести пин код:</p>
+        <input type="password" id="removePinInput" maxlength="4" placeholder="Введите пинкод" style="text-align: center;">
+        <button id="disablePinBtn" style="background: #FF3B30; color: #fff; cursor: pointer;">Убрать ПИН-код</button>
+      </div>
+      <p id="securityError" style="color: #FF3B30; text-align: center; margin-bottom: 10px; display: none;"></p>
+      <button class="close-modal-btn" onclick="document.getElementById('securityModal').classList.remove('show')">Закрыть</button>
+    </div>
+  </div>
+
+  <div id="privacyModal" class="modal">
+    <div class="modal-content" style="max-width: 450px; max-height: 80vh; overflow-y: auto;">
+      <h3>🛡️ Конфиденциальность</h3>
+      <div style="text-align: left; line-height: 1.6; font-size: 15px; opacity: 0.95;">
+        <p><strong>Разработчик:</strong><br>Киселёв Виктор Сергеевич</p>
+        <p><strong>О приложении и Создателе:</strong><br>Данное приложение создано с абсолютным приоритетом на защиту личного пространства пользователя. Создатель Киселёв Виктор Сергеевич гарантирует прозрачность процессов и полное отсутствие скрытого сбора данных.</p>
+        <p><strong>Безопасность и хранение данных:</strong><br>Мы заявляем со всей ответственностью: <strong>никто и ни при каких обстоятельствах не может украсть ваши данные удаленно</strong> через интернет.</p>
+        <p>Все ваши заметки, созданные папки, пароли безопасности и настройки хранятся <strong>исключительно в памяти вашего телефона</strong>.</p>
+        <p>В приложении полностью отсутствуют внешние облачные серверы, сторонние базы данных или трекеры аналитики. Информация никогда не покидает пределы вашего устройства. Ваша приватность защищена на 100%, пока кто-либо не получит прямой физический доступ к вашему разблокированному телефону.</p>
+      </div>
+      <button class="close-modal-btn" style="margin-top: 15px;" onclick="document.getElementById('privacyModal').classList.remove('show')">Понятно</button>
+    </div>
+  </div>
+
+  <div id="themeModal" class="modal">
+    <div class="modal-content">
+      <h3>Выберите тему</h3>
+      <div class="theme-grid">
+        <button class="theme-btn" data-theme="white">Белая</button>
+        <button class="theme-btn" data-theme="black">Черная</button>
+        <button class="theme-btn" data-theme="yellow">Желтая</button>
+        <button class="theme-btn" data-theme="red">Красная</button>
+        <button class="theme-btn" data-theme="blue">Синяя</button>
+        <button class="theme-btn" data-theme="green">Зеленая</button>
+        <button class="theme-btn" data-theme="purple">Фиолетовая</button>
+        <button class="theme-btn" data-theme="neon">Неон</button>
+        <button class="theme-btn hacker-btn" data-theme="hacker">Хакер</button>
+      </div>
+      <button class="close-modal-btn" onclick="document.getElementById('themeModal').classList.remove('show')">Закрыть</button>
+    </div>
+  </div>
+
+  <div id="folderModal" class="modal">
+    <div class="modal-content">
+      <h3>Новая папка</h3>
+      <input type="text" id="newFolderName" placeholder="Название...">
+      <button id="saveFolderBtn" style="background: var(--accent-color); color: #fff; cursor: pointer;">Создать</button>
+      <button class="close-modal-btn" onclick="document.getElementById('folderModal').classList.remove('show')">Отмена</button>
+    </div>
+  </div>
+
+  <div id="mainScreen" class="screen active">
+    <header>
+      <div class="header-top">
+        <button id="menuBtn" class="icon-btn">☰</button>
+        <h1 id="mainTitle">Все заметки</h1>
+      </div>
+      <input type="text" id="searchInput" placeholder="Поиск...">
+    </header>
+    <main>
+      <div id="notesList"></div>
+    </main>
+    <button id="fabBtn" class="fab">✏️</button>
+  </div>
+
+  <div id="editorScreen" class="screen">
+    <header class="editor-header">
+      <button id="backBtn" class="icon-btn">←</button>
+      <select id="noteFolderSelect" class="folder-select"></select>
+      <button id="saveBtn" class="icon-btn">💾</button>
+    </header>
+    <main class="editor-main">
+      <input type="text" id="noteTitle" placeholder="Заголовок">
+      <textarea id="noteText" placeholder="Начните вводить текст..."></textarea>
+    </main>
+  </div>
+</div>
+
+<script>
+  // Базы данных приложения (Сохраняются строго локально в памяти телефона)
+  let notes = JSON.parse(localStorage.getItem('myNotes')) || [];
+  let folders = JSON.parse(localStorage.getItem('myFolders')) || ['Основная'];
+
+  let currentFolder = 'Все'; 
+  let viewingTrash = false;
+  let editingId = null;
+
+  function init() {
+    setupTheme(); 
+    renderFolders();
+    renderNotes();
+    checkAppLock();
+  }
+
+  // --- ФУНКЦИЯ ДЛЯ НАДЕЖНОГО ДОЛГОГО НАЖАТИЯ НА СМАРТФОНАХ ---
+  function makeLongPressable(element, onLongPress, onClick) {
+    let pressTimer;
+    let isLongPress = false;
+    let startX = 0, startY = 0;
+
+    const start = (e) => {
+      if (e.type === 'mousedown' && e.button !== 0) return;
+      isLongPress = false;
+      
+      if (e.touches && e.touches.length > 0) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+      }
+      
+      pressTimer = setTimeout(() => {
+        isLongPress = true;
+        onLongPress();
+      }, 700);
+    };
+
+    const cancel = () => {
+      if (pressTimer) clearTimeout(pressTimer);
+    };
+
+    const move = (e) => {
+      if (e.touches && e.touches.length > 0) {
+        const moveX = e.touches[0].clientX;
+        const moveY = e.touches[0].clientY;
+        if (Math.abs(moveX - startX) > 10 || Math.abs(moveY - startY) > 10) {
+          clearTimeout(pressTimer);
+        }
+      }
+    };
+
+    element.addEventListener('mousedown', start);
+    element.addEventListener('touchstart', start, { passive: true });
+    element.addEventListener('mouseup', cancel);
+    element.addEventListener('touchend', cancel);
+    element.addEventListener('touchmove', move, { passive: true });
+    
+    element.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+    
+    element.onclick = (e) => {
+      if (isLongPress) {
+        e.preventDefault();
+        e.stopPropagation();
+        isLongPress = false;
+        return;
+      }
+      if (onClick) onClick();
+    };
+  }
+
+  // --- ЛОГИКА БЛОКИРОВКИ И ПИН-КОДА ---
+  function checkAppLock() {
+    const savedPin = localStorage.getItem('appPin');
+    if (savedPin) {
+      document.getElementById('pinLockScreen').style.display = 'flex';
+      mainScreen.classList.remove('active');
+    }
+  }
+
+  document.getElementById('unlockBtn').onclick = () => {
+    const entered = document.getElementById('lockPinInput').value;
+    const savedPin = localStorage.getItem('appPin');
+    if (entered === savedPin) {
+      document.getElementById('pinLockScreen').style.display = 'none';
+      mainScreen.classList.add('active');
+      document.getElementById('lockPinInput').value = '';
+      document.getElementById('lockError').style.display = 'none';
+    } else {
+      document.getElementById('lockError').style.display = 'block';
+      document.getElementById('lockPinInput').value = '';
+    }
+  };
+
+  document.getElementById('securityBtn').onclick = () => {
+    document.getElementById('sideMenu').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+    
+    const savedPin = localStorage.getItem('appPin');
+    const setupBlock = document.getElementById('pinSetupBlock');
+    const removeBlock = document.getElementById('pinRemoveBlock');
+    const errText = document.getElementById('securityError');
+    
+    errText.style.display = 'none';
+    document.getElementById('newPin').value = '';
+    document.getElementById('confirmPin').value = '';
+    document.getElementById('removePinInput').value = '';
+
+    if (savedPin) {
+      setupBlock.style.display = 'none';
+      removeBlock.style.display = 'block';
+    } else {
+      setupBlock.style.display = 'block';
+      removeBlock.style.display = 'none';
+    }
+    document.getElementById('securityModal').classList.add('show');
+  };
+
+  document.getElementById('savePinBtn').onclick = () => {
+    const pin = document.getElementById('newPin').value;
+    const confirm = document.getElementById('confirmPin').value;
+    const errText = document.getElementById('securityError');
+    
+    if (!/^\d{4}$/.test(pin)) {
+      errText.innerText = 'ПИН-код должен состоять строго из 4 цифр!';
+      errText.style.display = 'block';
+      return;
+    }
+    if (pin !== confirm) {
+      errText.innerText = 'Ошибочка. ПИН-коды не совпадают!';
+      errText.style.display = 'block';
+      return;
+    }
+    
+    localStorage.setItem('appPin', pin);
+    document.getElementById('securityModal').classList.remove('show');
+    alert('ПИН-код успешно сохранен и активирован!');
+  };
+
+  document.getElementById('disablePinBtn').onclick = () => {
+    const entered = document.getElementById('removePinInput').value;
+    const savedPin = localStorage.getItem('appPin');
+    const errText = document.getElementById('securityError');
+    
+    if (entered === savedPin) {
+      localStorage.removeItem('appPin');
+      document.getElementById('securityModal').classList.remove('show');
+      alert('Защита отключена, ПИН-код удален.');
+    } else {
+      errText.innerText = 'Неверный текущий ПИН-код!';
+      errText.style.display = 'block';
+    }
+  };
+
+  // --- ЛОГИКА КОНФИДЕНЦИАЛЬНОСТИ ---
+  document.getElementById('privacyBtn').onclick = () => {
+    document.getElementById('sideMenu').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+    document.getElementById('privacyModal').classList.add('show');
+  };
+
+  // --- ПАПКИ ---
+  function renderFolders() {
+    foldersListMenu.innerHTML = '';
+    folders.forEach(folder => {
+      const li = document.createElement('li');
+      li.className = 'folder-item';
+      li.innerText = `📁 ${folder}`;
+      
+      makeLongPressable(li, () => {
+        if (folder === 'Основная') {
+          alert('Основную папку нельзя удалить!');
+          return;
+        }
+        if (confirm(`Удалить папку "${folder}"? Заметки останутся на телефоне.`)) {
+          folders = folders.filter(f => f !== folder);
+          localStorage.setItem('myFolders', JSON.stringify(folders));
+          if (currentFolder === folder) currentFolder = 'Все';
+          notes.forEach(n => { if (n.folder === folder) n.folder = 'Основная'; });
+          localStorage.setItem('myNotes', JSON.stringify(notes));
+          renderFolders();
+          renderNotes();
+        }
+      }, () => {
+        currentFolder = folder;
+        viewingTrash = false;
+        document.getElementById('sideMenu').classList.remove('open');
+        document.getElementById('overlay').classList.remove('show');
+        renderNotes();
+      });
+      
+      foldersListMenu.appendChild(li);
+    });
+
+    noteFolderSelect.innerHTML = '';
+    folders.forEach(folder => {
+      const opt = document.createElement('option');
+      opt.value = folder; opt.innerText = folder;
+      noteFolderSelect.appendChild(opt);
+    });
+  }
+
+  document.getElementById('newFolderBtn').onclick = () => {
+    document.getElementById('folderModal').classList.add('show');
+  };
+
+  document.getElementById('saveFolderBtn').onclick = () => {
+    const name = document.getElementById('newFolderName').value.trim();
+    if (name && !folders.includes(name)) {
+      folders.push(name);
+      localStorage.setItem('myFolders', JSON.stringify(folders));
+      renderFolders();
+      document.getElementById('newFolderName').value = '';
+      document.getElementById('folderModal').classList.remove('show');
+    }
+  };
+
+  // --- ЗАМЕТКИ ---
+  function renderNotes(filterText = '') {
+    notesList.innerHTML = '';
+    
+    if (viewingTrash) {
+      mainTitle.innerText = 'Корзина';
+      fabBtn.style.display = 'none';
+    } else {
+      mainTitle.innerText = currentFolder === 'Все' ? 'Все заметки' : `Папка: ${currentFolder}`;
+      fabBtn.style.display = 'flex';
+    }
+
+    let filtered = notes.filter(n => n.title.toLowerCase().includes(filterText.toLowerCase()) || n.text.toLowerCase().includes(filterText.toLowerCase()));
+    
+    if (viewingTrash) {
+      filtered = filtered.filter(n => n.isDeleted === true);
+    } else {
+      filtered = filtered.filter(n => n.isDeleted !== true);
+      if (currentFolder !== 'Все') {
+        filtered = filtered.filter(n => n.folder === currentFolder);
+      }
+    }
+
+    filtered.forEach(note => {
+      const div = document.createElement('div');
+      div.className = 'note-card';
+      
+      if (viewingTrash) {
+        div.innerHTML = `
+          <h3>${note.title}</h3><p>${note.text.substring(0, 80)}...</p>
+          <div class="trash-actions">
+            <button class="restore-btn" onclick="restoreNote(${note.id})">Вернуть</button>
+            <button class="hard-delete-btn" onclick="hardDelete(${note.id})">Удалить навсегда</button>
+          </div>
+        `;
+      } else {
+        div.innerHTML = `<h3>${note.title}</h3><p>${note.text.substring(0, 100)}...</p>`;
+        
+        makeLongPressable(div, () => {
+          if (confirm('Переместить эту заметку в корзину?')) {
+            note.isDeleted = true;
+            localStorage.setItem('myNotes', JSON.stringify(notes));
+            renderNotes();
+          }
+        }, () => {
+          openEditor(note.id);
+        });
+      }
+      notesList.appendChild(div);
+    });
+  }
+
+  document.getElementById('allNotesBtn').onclick = () => { currentFolder = 'Все'; viewingTrash = false; document.getElementById('sideMenu').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); renderNotes(); };
+  document.getElementById('trashBtn').onclick = () => { viewingTrash = true; document.getElementById('sideMenu').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); renderNotes(); };
+
+  function openEditor(id = null) {
+    editingId = id;
+    if (id) {
+      const note = notes.find(n => n.id === id);
+      document.getElementById('noteTitle').value = note.title;
+      document.getElementById('noteText').value = note.text;
+      noteFolderSelect.value = note.folder || 'Основная';
+    } else {
+      document.getElementById('noteTitle').value = '';
+      document.getElementById('noteText').value = '';
+      noteFolderSelect.value = currentFolder === 'Все' ? 'Основная' : currentFolder;
+    }
+    mainScreen.classList.remove('active');
+    editorScreen.classList.add('active');
+  }
+
+  document.getElementById('saveBtn').onclick = () => {
+    const title = document.getElementById('noteTitle').value.trim() || 'Без заголовка';
+    const text = document.getElementById('noteText').value.trim();
+    const folder = noteFolderSelect.value;
+    
+    if (text !== '') {
+      if (editingId) {
+        const index = notes.findIndex(n => n.id === editingId);
+        notes[index] = { ...notes[index], title, text, folder };
+      } else {
+        notes.unshift({ id: Date.now(), title, text, folder, isDeleted: false });
+      }
+      localStorage.setItem('myNotes', JSON.stringify(notes));
+    }
+    closeEditor();
+  };
+
+  function closeEditor() {
+    editorScreen.classList.remove('active');
+    mainScreen.classList.add('active');
+    renderNotes();
+  }
+
+  window.restoreNote = function(id) {
+    const note = notes.find(n => n.id === id);
+    if (note) note.isDeleted = false;
+    localStorage.setItem('myNotes', JSON.stringify(notes));
+    renderNotes();
+  }
+
+  window.hardDelete = function(id) {
+    if (confirm('Точно удалить навсегда?')) {
+      notes = notes.filter(n => n.id !== id);
+      localStorage.setItem('myNotes', JSON.stringify(notes));
+      renderNotes();
+    }
+  }
+
+  document.getElementById('backBtn').onclick = closeEditor;
+  document.getElementById('searchInput').addEventListener('input', (e) => renderNotes(e.target.value));
+  document.getElementById('fabBtn').onclick = () => openEditor();
+
+  document.getElementById('menuBtn').onclick = () => { document.getElementById('sideMenu').classList.add('open'); document.getElementById('overlay').classList.add('show'); };
+  document.getElementById('overlay').onclick = () => { document.getElementById('sideMenu').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); };
+  document.getElementById('closeMenuBtn').onclick = () => { document.getElementById('sideMenu').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); };
+
+  function setupTheme() {
+    const savedTheme = localStorage.getItem('appTheme') || 'black';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    document.getElementById('themeToggleBtn').onclick = () => document.getElementById('themeModal').classList.add('show');
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+      btn.onclick = (e) => {
+        const theme = e.target.getAttribute('data-theme');
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('appTheme', theme);
+        document.getElementById('themeModal').classList.remove('show');
+      };
+    });
+  }
+
+  init();
+</script>
+
+</body>
+</html>
