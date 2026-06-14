@@ -24,17 +24,25 @@ jobs:
       with:
         node-version: '20'
 
-    - name: Prepare Web Assets & Install Capacitor
+    - name: Prepare Web Assets & Install Dependencies
       run: |
         mkdir www
-        mv index.html www/
+        cp index.html www/index.html
         npm init -y
         npm install @capacitor/core @capacitor/cli @capacitor/android
 
-    - name: Initialize Android Project
+    - name: Create Capacitor Config File
       run: |
-        npx cap init "ARES BLOOK NOTE" "com.kiselev.aresblooknote" --web-dir=www --no-interactive
-        npx cap add android
+        cat <<EOF > capacitor.config.json
+        {
+          "appId": "com.kiselev.aresblooknote",
+          "appName": "ARES BLOOK NOTE",
+          "webDir": "www"
+        }
+        EOF
+
+    - name: Add Android Platform
+      run: npx cap add android
 
     - name: Compile APK (Debug)
       run: |
@@ -46,4 +54,3 @@ jobs:
       with:
         name: ares-blook-note-apk
         path: android/app/build/outputs/apk/debug/app-debug.apk
-
