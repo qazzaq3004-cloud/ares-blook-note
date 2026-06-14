@@ -24,12 +24,16 @@ jobs:
       with:
         node-version: '20'
 
+    - name: Accept Android SDK Licenses
+      run: |
+        yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
     - name: Prepare Web Assets & Install Dependencies
       run: |
         mkdir www
         cp index.html www/index.html
         npm init -y
-        npm install @capacitor/core @capacitor/cli @capacitor/android
+        npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
 
     - name: Create Capacitor Config File
       run: |
@@ -44,10 +48,13 @@ jobs:
     - name: Add Android Platform
       run: npx cap add android
 
+    - name: Fix Gradle Permissions
+      run: chmod +x android/gradlew
+
     - name: Compile APK (Debug)
       run: |
         cd android
-        ./gradlew assembleDebug
+        ./gradlew assembleDebug --no-daemon
 
     - name: Upload Finished APK
       uses: actions/upload-artifact@v4
